@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>搜索框</title>
+  <link rel="stylesheet" href="../static/bootstrap.min.css">
+</head>
+<body>
+  <input id="search" type="text" class="form-control" autocomplete="off" placeholder="search">
+  <ul id="list" class="list-group"></ul>
+
+  <script src="../static/jquery.min.js"></script>
+  <script src="../static/bootstrap.min.js"></script>
+  <script src="../static/rxjs.umd.min.js"></script>
+  <script>
+    const $search = $('#search');
+    const $list = $('#list');
+    const Rx = rxjs;
+    const { map, filter, debounceTime, distinctUntilChanged, switchMap } = Rx.operators;
+    const typeHead$ = Rx.fromEvent($search.get(0), 'input').pipe(
+      map((e) => e.target.value), // 传递输入值
+      filter((data) => data.length > 2), // 仅当输入框内超过2个字符时触发
+      debounceTime(1000), // 每秒仅触发一次
+      distinctUntilChanged(), // 重复的内容仅触发一次（如快速输入一个字符后按退格键）
+      switchMap((data) => getList(data)) // 仅取最新的返回值
+    );
+    typeHead$.subscribe((data) => {
+      console.log(data);
+      let now = new Date().toLocaleTimeString();
+      $list.append(`<li class="list-group-item">${data.text} ${now}</li>`);
+    });
+
+    function getList(data) {
+      return Rx.from([{ text: `匹配${data}的数据` }]);
+    }
+
+  </script>
+</body>
+</html>
