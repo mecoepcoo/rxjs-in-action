@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>等待数据</title>
+  <link rel="stylesheet" href="../../static/bootstrap.min.css">
+</head>
+<body>
+  <h1 id="title">需求：</h1>
+  <h3 class="requirement">进入一个页面时，要发送一次访问日志到服务端，日志中需要带上用户信息。用户信息是通过接口异步获取的，我们不希望获取用户信息的行为阻塞页面的加载。</h3>
+
+  <div id="loading">检查到token，正在请求用户信息...</div>
+  <div id="username">用户名是：</div>
+  <div id="log">发送了日志</div>
+
+  <script src="../../static/jquery.min.js"></script>
+  <script src="../../static/bootstrap.min.js"></script>
+  <script src="../../static/rxjs.umd.min.js"></script>
+  <script>
+		$('#loading').hide()
+		$('#username').hide()
+		$('#log').hide()
+		// 以下模拟处理过程
+		const Rx = rxjs
+		const { delay, map, switchMap, filter, first } = Rx.operators
+		let token = Math.random() > 0.5 ? true : false
+		
+		let username = ''
+		const needSendLog$ = new Rx.BehaviorSubject('').pipe(
+			first(() => token ? !!username : true),
+			switchMap(() => Rx.of(true))
+		)
+		const username$ = Rx.of('XiaoMing').pipe(
+			map(data => {
+				$('#loading').show()
+				return data
+			}),
+			// 延时，模拟ajax请求用户名
+			delay(3000),
+			map(data => {
+				username = data
+				$('#username').show().text(`用户名是：${username}`)
+				needSendLog$.next()
+				return data
+			}),
+		)
+
+		function sendLog() {
+			$('#log').show()
+		}
+		
+		function run() {
+			// 如果没有登录（没有token），直接发送log，否则等待用户信息
+			if (token) {
+				username$.subscribe((data) => {
+					console.log(data)
+				})
+			}
+			needSendLog$.subscribe((data) => {
+				if (data === true) {
+					sendLog()
+				}
+			})
+		}
+		run()
+  </script>
+</body>
+</html>
